@@ -21,26 +21,9 @@ export default function PatientFormPage({data, setData, onSubmit, errs, onBack})
   const payMode = data.payMode || "cash";
   const cashlessType = data.cashlessType || "";
 // 🌟 UPDATED: Catching the real data and removing alerts
-  const handleApiSubmit = async (e) => {
-      e.preventDefault();
-      
-      const payload = { ...data };
-      if (payload.dob === "") payload.dob = null;
-      if (payload.email === "") payload.email = null;
-      if (payload.tpaValidity === "") payload.tpaValidity = null;
-      if (payload.tpaPanelValidity === "") payload.tpaPanelValidity = null;
-
-      try {
-          // 1. Capture the exact response from Django!
-          const newPatientFromDjango = await apiService.registerPatient(payload);
-          
-          // 2. Pass Django's real data (with the real UHID) back to App.jsx
-          if (onSubmit) onSubmit(newPatientFromDjango); 
-          
-      } catch (error) {
-          console.error("Failed to save to Django:", error);
-          // We can replace this with a subtle red text error later, but for now, we just log it.
-      }
+  const handleApiSubmit = (e) => {
+    e.preventDefault();
+    if (onSubmit) onSubmit();
   };
 
   return (

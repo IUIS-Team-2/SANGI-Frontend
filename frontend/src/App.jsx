@@ -17,7 +17,6 @@ import PatientsHistoryPage from "./pages/PatientsHistoryPage";
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import MedicalHistoryPage from "./pages/MedicalHistoryPage";
 import LoginPage from "./pages/LoginPage";
-import LocationSwitcher from "./components/layout/LocationSwitcher";
 
 // Modals
 import UHIDScreen from "./modals/UHIDScreen";
@@ -228,7 +227,7 @@ export default function App() {
           <LiveDate />
           {currentUser && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 12 }}>
-              <LocationSwitcher locId={locId} setLocId={switchLoc} />
+
               <div style={{ fontSize: 12, lineHeight: 1.4, textAlign: "right" }}>
                 <div style={{ fontWeight: 700, color: "#fff" }}>{currentUser.name}</div>
                 <div style={{ color: "rgba(255,255,255,.5)" }}>
