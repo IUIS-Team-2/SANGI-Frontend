@@ -12,7 +12,7 @@ A Hospital Management System for managing IPD patient registrations, admissions,
 
 ### Installation
 ```bash
-git clone https://github.com/IUIS-Team-2/HMS-Portal.git
+git clone https://github.com/IUIS-Team-2/SANGI-Frontend
 cd HMS-Portal
 npm install
 npm start
