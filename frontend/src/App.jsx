@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ToastContainer } from "./components/ui/Toast";
 import { T, NAV_PAGES } from "./data/constants";
 import { LOCATION_DB } from "./data/mockDb";
 import { blankPatient, blankDischarge, blankBilling, blankSvc } from "./utils/helpers";
@@ -149,6 +150,24 @@ export default function App() {
   const handleUHIDNewPatient = () => { endSession(); setSubPage("form"); };
 
   const handleSaveMedical = () => { syncDb(uhid, admNo, "medicalHistory", medicalHistory); setMedicalDone(true); setPage("discharge"); };
+  const handleFillMedHistoryFromHistory=(patientObj,admObj)=>{
+    const{admissions,...pd}=patientObj;
+    setPatient(pd);
+    setUhid(patientObj.uhid);
+    setAdmNo(admObj.admNo);
+    setIsReturning(true);
+    setPatientDone(true);
+    setMedicalDone(false);
+    setDischargeDone(false);
+    setServicesDone(false);
+    setDischarge({...blankDischarge(),...(admObj.discharge||{})});
+    setSvcs(admObj.services&&admObj.services.length?admObj.services:[]);
+    setBilling({...blankBilling(),...(admObj.billing||{})});
+    setMedicalHistory(admObj.medicalHistory||{});
+    setShowPatientDetail(null);
+    setShowUHID(false);
+    setPage('medical');
+  };
   const handleSaveMedHistoryFromHistory = (uhidVal, admNoVal, data) => { setDb(prev => { const next = JSON.parse(JSON.stringify(prev)); const p = next[locId].find(x => x.uhid === uhidVal); if (p) { const a = p.admissions.find(x => x.admNo === admNoVal); if (a) a.medicalHistory = data; } return next; }); };
   const handleSaveDischarge  = () => { syncDb(uhid, admNo, 'discharge', discharge); setDischargeDone(true); setPage("services"); };
   const handleSaveServices   = (updatedSvcs, updatedBilling) => {
@@ -291,9 +310,10 @@ export default function App() {
           {page === "discharge"&& <DischargePage data={discharge} setData={setDischarge} onSave={handleSaveDischarge} />}
           {page === "services" && <ServicesPage svcs={svcs} setSvcs={setSvcs} billing={billing} setBilling={setBilling} onSave={handleSaveServices} />}
           {page === "summary"  && <SummaryPage uhid={uhid} patient={patient} discharge={discharge} svcs={svcs} billing={billing} locId={locId} admNo={admNo} onPrint={() => setShowPrint(true)} onRequestPrint={handleRequestPrint} />}
-          {page === "history"  && <PatientsHistoryPage db={currentDb} locId={locId} onBack={() => setPage("patient")} onDischarge={handleDischargeFromHistory} onGenerateBill={handleGenerateBillFromHistory} onSetExpectedDod={handleSetExpectedDod} onViewPatient={p => setShowPatientDetail(p)} onSaveMedHistory={handleSaveMedHistoryFromHistory} />}
+          {page === "history"  && <PatientsHistoryPage db={currentDb} locId={locId} onBack={() => setPage("patient")} onDischarge={handleDischargeFromHistory} onGenerateBill={handleGenerateBillFromHistory} onSetExpectedDod={handleSetExpectedDod} onViewPatient={p => setShowPatientDetail(p)} onSaveMedHistory={handleSaveMedHistoryFromHistory} onFillMedHistory={handleFillMedHistoryFromHistory} />}
         </main>
       </div>
+  <ToastContainer />
     </>
   );
 }

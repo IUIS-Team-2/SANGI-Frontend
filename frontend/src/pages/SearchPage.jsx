@@ -1,3 +1,4 @@
+import { toast } from "../components/ui/Toast";
 import { useState } from "react";
 import { T, LOCATIONS } from "../data/constants";
 import { Ico, IC } from "../components/ui/Icons";
@@ -69,7 +70,7 @@ export default function SearchPage({db,locId,onNewAdmission,onNewPatient}){
             {query&&<button className="search-clear" onClick={clear}><Ico d={IC.x} size={14} sw={2}/></button>}
           </div>
           <button className="search-btn" onClick={doSearch}><Ico d={IC.search} size={15} sw={2}/> Search</button>
-          <button className="new-patient-btn" onClick={()=>{if(!admissionType){alert("Please select an admission type first!");return;}onNewPatient(admissionType);}}><Ico d={IC.plus} size={15} sw={2.5}/> New Patient</button>
+          <button className="new-patient-btn" onClick={()=>{if(!admissionType){toast.warn("Please select an admission type first!");return;}onNewPatient(admissionType);}}><Ico d={IC.plus} size={15} sw={2.5}/> New Patient</button>
         </div>
       </div>
     </div>
@@ -103,7 +104,7 @@ export default function SearchPage({db,locId,onNewAdmission,onNewPatient}){
         <div className="new-adm-banner">
           <div className="nab-icon"><Ico d={IC.newadm} size={22} sw={1.75}/></div>
           <div className="nab-text" style={{flex:1}}><h3>New Admission — {result.patientName}</h3><p>Same UHID <strong style={{color:T.accentLight}}>{result.uhid}</strong> will be retained. A new admission entry will be added to their history.</p></div>
-          <button className="nab-btn" onClick={()=>{if(!admissionType){alert("Please select an admission type first!");return;}onNewAdmission(result,admissionType);}} style={{opacity:admissionType?1:0.6}}><Ico d={IC.plus} size={16} sw={2.5}/> New Admission</button>
+          <button className="nab-btn" onClick={()=>{if(!admissionType){toast.warn("Please select an admission type first!");return;}onNewAdmission(result,admissionType);}} style={{opacity:admissionType?1:0.6}}><Ico d={IC.plus} size={16} sw={2.5}/> New Admission</button>
         </div>
       </>)}
       {searched&&!result&&(<div className="not-found"><div className="not-found-icon"><Ico d={IC.search} size={28} sw={1.5}/></div><h3 style={{fontFamily:"'DM Serif Display',serif",fontSize:20,color:T.primary,marginBottom:8}}>No patient found</h3><p style={{fontSize:14,color:T.textMuted,marginBottom:28,maxWidth:340,margin:"0 auto 28px",lineHeight:1.6}}>No record matches <strong>"{query}"</strong> at this branch.</p><button className="btn btn-accent" style={{margin:"0 auto"}} onClick={onNewPatient}><Ico d={IC.plus} size={15} sw={2.5}/> Register New Patient</button></div>)}

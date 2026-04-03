@@ -7,7 +7,7 @@ import { statusBadge } from "../components/ui/SharedUI";
 import { apiService } from '../services/apiService';
 import { downloadAdmissionNote } from './MedicalHistoryPage';
 
-export default function PatientsHistoryPage({db, locId, onBack, onDischarge, onGenerateBill, onSetExpectedDod, onViewPatient, onSaveMedHistory}){
+export default function PatientsHistoryPage({db, locId, onBack, onDischarge, onGenerateBill, onSetExpectedDod, onViewPatient, onSaveMedHistory, onFillMedHistory}){
   const loc = LOCATIONS.find(l => l.id === locId);
   const [filterDate, setFilterDate] = useState(""); const [filterMonth, setFilterMonth] = useState(""); const [filterYear, setFilterYear] = useState("");
   const [expDodModal, setExpDodModal] = useState(null);
@@ -51,29 +51,82 @@ export default function PatientsHistoryPage({db, locId, onBack, onDischarge, onG
   const totalAdm = filtered.length; const discharged = filtered.filter(r => r.dod && r.status).length; const pending = totalAdm - discharged; const billed = filtered.filter(r => r.billing && (r.billing.paidNow || r.billing.paymentMode)).length;
   const clearFilters = () => { setFilterDate(""); setFilterMonth(""); setFilterYear(""); };
 
-  const downloadExcel = () => {
-    const data = filtered.map((r, i) => ({
-      "SR.NO": i + 1,
-      "PATIENT NAME": r.patientName,
-      "AGE/G": (r.patientObj?.ageYY ? r.patientObj.ageYY + " Yrs" : "") + (r.patientObj?.gender ? " / " + r.patientObj.gender.charAt(0).toUpperCase() : ""),
-      "IPD NO": "SH/" + (r.patientObj?.tpa ? r.patientObj.tpa.substring(0,4).toUpperCase() : "GEN") + "/26/" + (1900 + r.admNo),
-      "CARD NO": r.patientObj?.tpaCard || r.patientObj?.tpaPanelCardNo || "—",
-      "ROOM": r.admObj?.discharge?.wardName || "—",
-      "DOA & TIME": r.doa ? fmtDT(r.doa) : "",
-      "DOD & TIME": r.dod ? fmtDT(r.dod) : "",
-      "STAY": r.doa && r.dod ? Math.ceil((new Date(r.dod) - new Date(r.doa)) / (1000*60*60*24)) + " Days" : "—",
-      "TYPE": r.admObj?.admissionType || "IPD",
-      "TYPE REFERRAL/EMERGENCY": r.admObj?.discharge?.admissionType || "—",
-      "CONSULTANT NAME": r.admObj?.discharge?.doctorName || "—",
-      "NUMBER": r.patientObj?.phone || "—",
-      "ADDRESS": r.patientObj?.address || "—",
-      "DISCHARGE STATUS": r.status || "Pending",
-      "BILL STATUS": (r.billing && (r.billing.paidNow || r.billing.paymentMode)) ? "Generated" : "Pending",
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "IPD Records");
-    XLSX.writeFile(wb, "Sangi_Hospital_IPD_" + new Date().toLocaleDateString("en-IN").replace(/\//g, "-") + ".xlsx");
+  const downloadExcel = async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const { saveAs } = await import("file-saver");
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("IPD Records");
+    const locName = loc?.name || "Hospital";
+
+    // Title row
+    ws.mergeCells("A1:P1");
+    const title = ws.getCell("A1");
+    title.value = `🏥  ${locName} — IPD RECORDS  |  ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`;
+    title.font      = { bold: true, color: { argb: "FFFFFFFF" }, size: 14, name: "Arial" };
+    title.fill      = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D2B55" } };
+    title.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(1).height = 32;
+
+    // Header row
+    const headers = ["SR.NO","PATIENT NAME","AGE/G","IPD NO","CARD NO","ROOM","DOA & TIME","DOD & TIME","STAY","TYPE","TYPE REF/EMERGENCY","CONSULTANT NAME","NUMBER","ADDRESS","DISCHARGE STATUS","BILL STATUS"];
+    const headerRow = ws.addRow(headers);
+    headerRow.height = 36;
+    const bs = (style="thin") => ({ style, color: { argb: "FFBFCFDE" } });
+    headerRow.eachCell(cell => {
+      cell.font      = { bold: true, color: { argb: "FFFFFFFF" }, size: 9, name: "Arial" };
+      cell.fill      = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A3C6E" } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border    = { top: bs("medium"), bottom: bs("medium"), left: bs("medium"), right: bs("medium") };
+    });
+
+    // Data rows
+    const ROW_COLORS = ["FFD6E4F7", "FFFFF8E7"];
+    filtered.forEach((r, i) => {
+      const bg = ROW_COLORS[i % 2];
+      const row = ws.addRow([
+        i + 1,
+        r.patientName,
+        (r.patientObj?.ageYY ? r.patientObj.ageYY + " Yrs" : "") + (r.patientObj?.gender ? " / " + r.patientObj.gender.charAt(0).toUpperCase() : ""),
+        "SH/" + (r.patientObj?.tpa ? r.patientObj.tpa.substring(0,4).toUpperCase() : "GEN") + "/26/" + (1900 + r.admNo),
+        r.patientObj?.tpaCard || r.patientObj?.tpaPanelCardNo || "—",
+        r.admObj?.discharge?.wardName || "—",
+        r.doa ? fmtDT(r.doa) : "",
+        r.dod ? fmtDT(r.dod) : "",
+        r.doa && r.dod ? Math.ceil((new Date(r.dod) - new Date(r.doa)) / (1000*60*60*24)) + " Days" : "—",
+        r.admObj?.admissionType || "IPD",
+        r.admObj?.discharge?.admissionType || "—",
+        r.admObj?.discharge?.doctorName || "—",
+        r.patientObj?.phone || "—",
+        r.patientObj?.address || "—",
+        r.status || "Pending",
+        (r.billing && (r.billing.paidNow || r.billing.paymentMode)) ? "Generated" : "Pending",
+      ]);
+      row.height = 24;
+      row.eachCell((cell, colNum) => {
+        cell.border    = { top: bs(), bottom: bs(), left: bs(), right: bs() };
+        cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+        cell.font      = { size: 9, name: "Arial" };
+        if (colNum === 15) {
+          const ok = ["Recovered","Discharged"].includes(cell.value);
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ok ? "FFE6F4EA" : "FFFFF3CD" } };
+          cell.font = { bold: true, color: { argb: ok ? "FF1E7E34" : "FF856404" }, size: 9, name: "Arial" };
+        } else if (colNum === 16) {
+          const ok = cell.value === "Generated";
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ok ? "FFFFF3CD" : "FFFDE8E8" } };
+          cell.font = { bold: true, color: { argb: ok ? "FF856404" : "FFC0392B" }, size: 9, name: "Arial" };
+        } else {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+        }
+        if (colNum === 2 || colNum === 14) cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+      });
+    });
+
+    // Column widths & freeze
+    [6,18,13,14,10,14,18,18,8,6,12,18,13,22,16,12].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+    ws.views = [{ state: "frozen", ySplit: 2 }];
+
+    const buffer = await wb.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `${locName}_IPD_${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.xlsx`);
   };
   const hasFilter = filterDate || filterMonth || filterYear;
 
@@ -134,7 +187,7 @@ export default function PatientsHistoryPage({db, locId, onBack, onDischarge, onG
                         ✓ View History
                       </button>
                     ) : (
-                      <button onClick={e => { e.stopPropagation(); setFillMedModal({ patientObj: r.patientObj, admObj: r.admObj }); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: "#FEF3C7", color: "#D97706", border: "1px solid #FDE68A", cursor: "pointer" }}>
+                      <button onClick={e => { e.stopPropagation(); onFillMedHistory(r.patientObj, r.admObj); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: "#FEF3C7", color: "#D97706", border: "1px solid #FDE68A", cursor: "pointer" }}>
                         ⚠ Not Filled — Click to Fill
                       </button>
                     )}

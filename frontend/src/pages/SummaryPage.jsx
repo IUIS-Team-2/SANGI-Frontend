@@ -1,3 +1,4 @@
+import { toast } from "../components/ui/Toast";
 import { T, LOCATIONS } from "../data/constants";
 import { fmtDT } from "../utils/helpers";
 import { Ico, IC } from "../components/ui/Icons";
@@ -12,7 +13,7 @@ export default function SummaryPage({uhid,patient,discharge,svcs,billing,locId,a
   const handleRequestPrint = () => {
     if (onRequestPrint) {
       onRequestPrint({ uhid, patient, discharge, svcs, billing, locId, admNo });
-      alert("✅ Print request sent to Super Admin for approval!");
+      toast.success("Print request sent to Super Admin for approval!");
     }
   };
 
